@@ -9,6 +9,7 @@ bool havFlag(uint16_t access_flag, uint16_t modifier);
 
 // 通过 access flag 输出当前的可见性修饰符
 void showModifier(uint16_t access_flag);
+char * getUTF8(uint8_t * utf8);
 
 // print hex numbers
 void print_u32(lvm::uint32_t hexnum);

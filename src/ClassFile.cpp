@@ -1,6 +1,7 @@
 #include <lvm.h>
 #include <fstream>
-#include <util.h>
+
+#include <lvm_util.h>
 using namespace std;
 using namespace lvm;
 
@@ -12,7 +13,7 @@ ClassFile::ClassFile()
 ClassFile::ClassFile(const char * filename)
 {
     // Load the bytecode
-    uint8_t * bytecode = load_class_file(filename);
+    this->bytecode = load_class_file(filename);
 
     // 获取class文件基础信息
     this->magic = read32(bytecode, pc);
@@ -74,10 +75,15 @@ ClassFile::ClassFile(const char * filename)
 }
 
 // Execute method
-void ClassFile::execute() {
+void ClassFile::execute() 
+{
     
 }
 
+char * ClassFile::getConstantClassName(CONSTANT_Class c)
+{
+    return getUTF8(this->constant_pool[c.name_index]);
+}
 
 // Load a class file into memory
 uint8_t* ClassFile::load_class_file(const char * filename)
@@ -104,6 +110,16 @@ void ClassFile::showInfo()
     cout << "-----------------------\n";
     cout << "Using Java " << this->getJavaVersion() << endl;
 
+    showModifier(this->access_flags); 
+    
+    uint8_t * p1 = this->constant_pool[this->this_class];
+    int pc_temp = 0;
+    CONSTANT_Class temp = {
+        read8(p1, pc_temp),read16(p1, pc_temp)};
+
+    cout << this->getConstantClassName(temp);
+    cout << endl;
+
     cout << "  magic number: ";
     print_u32(this->magic); cout << endl;
     cout << "  minor_version: ";
@@ -111,9 +127,6 @@ void ClassFile::showInfo()
     cout << "  major_version: ";
     print_u16(this->major_version); cout << endl;
     cout << "  constant pool count: " << this->constant_pool_count << endl;
-
-    cout << "access_flags: ";
-    print_u16(this->access_flags); cout << endl;
 
     cout << "this_class: ";
     print_u16(this->this_class); cout << endl;

@@ -63,6 +63,13 @@ typedef struct method_info
     uint16_t attributes_count;
 }method_info;
 
+typedef struct CONSTANT_Class
+{
+    uint8_t tag;
+    uint16_t name_index;
+};
+
+
 
 // -------------------------
 // ClassFile class
@@ -77,6 +84,9 @@ public:
     uint8_t* load_class_file(const char * filename);
     void execute();
     void execute(uint8_t * bytecode, int& pc);
+
+
+    char * getConstantClassName(CONSTANT_Class c);
 
     bool isJavaClass();
     int getJavaVersion();

@@ -1,6 +1,7 @@
 #include <iostream>
+
 #include <lvm.h>
-#include <util.h>
+#include <lvm_util.h>
 
 using namespace std;
 using namespace lvm;

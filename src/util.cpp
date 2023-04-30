@@ -1,4 +1,4 @@
-#include <util.h>
+#include <lvm_util.h>
 #include <lvm.h>
 #include <lvm_types.h>
 
@@ -8,11 +8,34 @@
 using namespace std;
 using namespace lvm;
 
+char * getUTF8(uint8_t * utf8)
+{
+    int pc_temp = 1;
+    uint16_t length = read16(utf8, pc_temp);
+    char* utf8_data = new char[length + 1];
+    for(int i=0; i<length; i++) {
+        utf8_data[i] = read8(utf8, pc_temp);
+    }
+    utf8_data[length] = '\0';
+    return utf8_data;
+}
+
 // 通过 access flag 输出当前的可见性修饰符
 void showModifier(uint16_t access_flag)
 {
     if (havFlag(access_flag, ACC_PUBLIC)) cout << "public ";
     else if (havFlag(access_flag, ACC_PRIVATE)) cout << "private ";
+    else if (havFlag(access_flag, ACC_PROTECTED)) cout << "protected ";
+
+    if (havFlag(access_flag, ACC_ABSTRACT)) cout << "abstract ";
+
+    if (havFlag(access_flag, ACC_STATIC)) cout << "static ";
+    if (havFlag(access_flag, ACC_FINAL)) cout << "final ";
+    // if (havFlag(access_flag, ACC_VOLATILE)) cout << "volatile ";
+    // if (havFlag(access_flag, ACC_TRANSIDENT)) cout << "transident ";
+    if (havFlag(access_flag, ACC_NATIVE)) cout << "native ";
+    if (havFlag(access_flag, ACC_INTERFACE)) cout << "interface ";
+    else cout << "class ";
 }
 
 bool havFlag(uint16_t access_flag, uint16_t modifier)
