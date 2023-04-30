@@ -87,6 +87,7 @@ public:
 
 
     char * getConstantClassName(CONSTANT_Class c);
+    char * getSuperClassName(CONSTANT_Class c);
 
     bool isJavaClass();
     int getJavaVersion();
