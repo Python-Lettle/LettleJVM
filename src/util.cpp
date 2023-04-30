@@ -1,27 +1,44 @@
 #include <util.h>
+#include <lvm.h>
 #include <lvm_types.h>
+
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 using namespace std;
 using namespace lvm;
 
-uint32_t read32(ifstream &file)
+// 通过 access flag 输出当前的可见性修饰符
+void showModifier(uint16_t access_flag)
 {
-    uint32_t temp;
-    file.read((char*)&temp, sizeof(uint32_t));
-    return temp;
+    if (havFlag(access_flag, ACC_PUBLIC)) cout << "public ";
+    else if (havFlag(access_flag, ACC_PRIVATE)) cout << "private ";
 }
 
-uint16_t read16(ifstream &file)
+bool havFlag(uint16_t access_flag, uint16_t modifier)
 {
-    uint16_t result = 0;
-    uint8_t temp = 0;
-    file.read((char*)&temp, sizeof(uint8_t));
-    result = temp << 2;
-    file.read((char*)&temp, sizeof(uint8_t));
-    result += temp;
-    return result;
+    return ((access_flag & modifier) == modifier);
+}
+
+// Parse a u1 value from the bytecode and update the program counter
+uint8_t read8(uint8_t* bytecode, int& pc) 
+{
+    return bytecode[pc++];
+}
+
+// Parse a u2 value from the bytecode and update the program counter
+uint16_t read16(uint8_t* bytecode, int& pc) 
+{
+    uint16_t value = (bytecode[pc++] << 8) | bytecode[pc++];
+    return value;
+}
+
+// Parse a u4 value from the bytecode and update the program counter
+uint32_t read32(uint8_t* bytecode, int& pc) 
+{
+    uint32_t value = (bytecode[pc++] << 24) | (bytecode[pc++] << 16) | (bytecode[pc++] << 8) | bytecode[pc++];
+    // uint32_t value = (bytecode[pc++]) | (bytecode[pc++] << 8) | (bytecode[pc++] << 16) | (bytecode[pc++] << 24);
+    return value;
 }
 
 // CA FE BA BE储存是BEBAFECA
@@ -47,3 +64,5 @@ void print_u8(lvm::uint8_t hexnum)
     snprintf(show, 10, "%02X ", hexnum);
     printf("%s", show);
 }
+
+
