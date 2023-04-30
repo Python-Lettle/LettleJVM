@@ -2,6 +2,7 @@
 #define UTIL_H
 
 #include <iostream>
+#include <lvm.h>
 #include <lvm_types.h>
 
 // 检查有没有flag
@@ -9,7 +10,10 @@ bool havFlag(uint16_t access_flag, uint16_t modifier);
 
 // 通过 access flag 输出当前的可见性修饰符
 void showModifier(uint16_t access_flag);
+// 传入常量池中 UTF8 常量的起始地址即可
 char * getUTF8(uint8_t * utf8);
+void load_attribute_info(uint8_t * data, lvm::attribute_info &info);
+
 
 // print hex numbers
 void print_u32(lvm::uint32_t hexnum);

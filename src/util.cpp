@@ -8,6 +8,15 @@
 using namespace std;
 using namespace lvm;
 
+void load_attribute_info(uint8_t * data, attribute_info &info)
+{
+    int pc_temp = 0;
+    info.attribute_name_index = read16(data, pc_temp);
+    info.attribute_length = read32(data, pc_temp);
+    info.info = data + pc_temp;
+}
+
+// 传入常量池中 UTF8 常量的起始地址即可
 char * getUTF8(uint8_t * utf8)
 {
     int pc_temp = 1;
@@ -34,8 +43,7 @@ void showModifier(uint16_t access_flag)
     // if (havFlag(access_flag, ACC_VOLATILE)) cout << "volatile ";
     // if (havFlag(access_flag, ACC_TRANSIDENT)) cout << "transident ";
     if (havFlag(access_flag, ACC_NATIVE)) cout << "native ";
-    if (havFlag(access_flag, ACC_INTERFACE)) cout << "interface ";
-    else cout << "class ";
+    
 }
 
 bool havFlag(uint16_t access_flag, uint16_t modifier)

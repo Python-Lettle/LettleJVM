@@ -30,6 +30,7 @@ enum CONSTANT_TYPES
 // 可见行修饰符列表
 enum MODIFIER_CONST
 {
+    // Class
     ACC_PUBLIC = 1,
     ACC_PRIVATE = 2,
     ACC_PROTECTED = 4,
@@ -41,7 +42,9 @@ enum MODIFIER_CONST
     ACC_NATIVE = 256,
     ACC_INTERFACE = 512,
     ACC_ABSTRACT = 1024,
-    ACC_STRICT = 2048
+    ACC_STRICT = 2048,
+
+    // TODO: need some const for methods
 };
 
 // -------------------------
@@ -55,19 +58,27 @@ typedef struct cp_info
     uint16_t name_and_type_index;
 }cp_info;
 
+typedef struct attribute_info
+{
+    uint16_t attribute_name_index;
+    uint32_t attribute_length;
+    uint8_t *info;
+}attribute_info;
+
 typedef struct method_info
 {
     uint16_t access_flags;
     uint16_t name_index;
     uint16_t descriptor_index;
     uint16_t attributes_count;
+    attribute_info * attributes;
 }method_info;
 
 typedef struct CONSTANT_Class
 {
     uint8_t tag;
     uint16_t name_index;
-};
+}CONSTANT_Class;
 
 
 
@@ -115,8 +126,10 @@ private:
     uint16_t this_class;
     uint16_t super_class;
     uint16_t interfaces_count;
+    std::vector<uint8_t *> interfaces;
     // Here might something add
     uint16_t fields_count;
+    std::vector<uint8_t *> fields;
     // Here might something add
     uint16_t methods_count;
     int main_method_index;                  // 方法区中main方法所在下标

@@ -5,6 +5,8 @@
 using namespace std;
 using namespace lvm;
 
+#define TAB showTab(tablevel)
+
 ClassFile::ClassFile()
 {
 
@@ -72,12 +74,24 @@ ClassFile::ClassFile(const char * filename)
     }
 
     this->attributes_count = read16(bytecode, pc);
+    this->attributes.resize(this->attributes_count);
+    for(int i=0; i<this->attributes_count; i++) {
+        this->attributes[i] = &bytecode[pc];
+    }
+    
 }
 
 // Execute method
 void ClassFile::execute() 
 {
-    
+    int pc_temp = 0;
+    uint8_t * main_method_p = methods[this->main_method_index];
+    method_info main_method;
+    main_method.access_flags = read16(main_method_p, pc_temp);
+    main_method.name_index = read16(main_method_p, pc_temp);
+    main_method.descriptor_index = read16(main_method_p, pc_temp);
+    main_method.attributes_count = read16(main_method_p, pc_temp);
+
 }
 
 char * ClassFile::getConstantClassName(CONSTANT_Class c)
@@ -104,11 +118,24 @@ uint8_t* ClassFile::load_class_file(const char * filename)
     return data;
 }
 
+void showTab(int level)
+{
+    for (int i=0; i<level; i++) {
+        cout << "  ";
+    }
+}
+
 // 输出关于这个Java class文件的信息
 void ClassFile::showInfo()
 {
+    int tablevel = 0;
     cout << "-----------------------\n";
     cout << "Using Java " << this->getJavaVersion() << endl;
+
+    int pc_temp = 0;
+    attribute_info attr_info;
+    load_attribute_info(this->attributes[0], attr_info);
+    cout << getUTF8(this->constant_pool[attr_info.info[1]]);
 
     cout << "magic number: ";
     print_u32(this->magic); cout << endl;
@@ -119,30 +146,61 @@ void ClassFile::showInfo()
 
     // Show modifiers 
     showModifier(this->access_flags); 
-    
+    if (havFlag(this->access_flags, ACC_INTERFACE)) cout << "interface ";
+    else cout << "class ";
     // Show class name and the super class name
-    CONSTANT_Class temp;
+    CONSTANT_Class class_temp;
 
     uint8_t * p1 = this->constant_pool[this->this_class];
-    int pc_temp = 0;
-    temp.tag = read8(p1, pc_temp);
-    temp.name_index = read16(p1, pc_temp);
-    cout << this->getConstantClassName(temp) << " extends ";
+    pc_temp = 0;
+    class_temp.tag = read8(p1, pc_temp);
+    class_temp.name_index = read16(p1, pc_temp);
+    cout << this->getConstantClassName(class_temp) << " extends ";
 
     p1 = this->constant_pool[this->super_class];
     pc_temp = 0;
-    temp.tag = read8(p1, pc_temp);
-    temp.name_index = read16(p1, pc_temp);
-    cout << this->getConstantClassName(temp) << endl;
-    cout << "{\n";
+    class_temp.tag = read8(p1, pc_temp);
+    class_temp.name_index = read16(p1, pc_temp);
+    cout << this->getConstantClassName(class_temp) << endl;
+    cout << "{\n"; tablevel++;
 
-    cout << "  constant pool count: " << this->constant_pool_count << endl;
+    showTab(tablevel);cout << "constant pool count: " << this->constant_pool_count << endl;
+    showTab(tablevel);cout << "interfaces_count: " << this->interfaces_count << endl;
+    showTab(tablevel);cout << "fields_count: " << this->fields_count << endl;
+    showTab(tablevel);cout << "methods_count: " << this->methods_count << endl << endl;
 
-    cout << "  interfaces_count: " << this->interfaces_count << endl;
+    // ------------------------
+    // Print method info
+    // ------------------------
+    method_info method_temp;
+    for(int i=0; i<this->methods_count; i++) {
+        /**
+         * Read info
+        */
+        pc_temp = 0;
+        method_temp.access_flags = read16(this->methods[i], pc_temp);
+        method_temp.name_index = read16(this->methods[i], pc_temp);
+        method_temp.descriptor_index = read16(this->methods[i], pc_temp);
+        method_temp.attributes_count = read16(this->methods[i], pc_temp);
+        method_temp.attributes = new attribute_info[method_temp.attributes_count];
+        for(int i=0; i<method_temp.attributes_count; i++) {
+            method_temp.attributes[i].attribute_name_index = read16(this->methods[i], pc_temp);
+            method_temp.attributes[i].attribute_length = read32(this->methods[i], pc_temp);
+            method_temp.attributes[i].info = this->methods[i] + pc_temp;
+        }
+        
+        /**
+         * Show begin
+        */
 
-    cout << "  fields_count: " << this->fields_count << endl;
-
-    cout << "  methods_count: " << this->methods_count << endl;
+        TAB;showModifier(method_temp.access_flags);
+        // Method name
+        cout << getUTF8(this->constant_pool[method_temp.descriptor_index]) << " " << getUTF8(this->constant_pool[method_temp.name_index]) << endl;
+        TAB;cout << "{\n"; tablevel++;
+        
+        tablevel--;
+        TAB;cout << "}\n"; 
+    }
 
     cout << "}\n-----------------------\n";
 }
