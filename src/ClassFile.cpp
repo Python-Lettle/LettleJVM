@@ -110,37 +110,41 @@ void ClassFile::showInfo()
     cout << "-----------------------\n";
     cout << "Using Java " << this->getJavaVersion() << endl;
 
+    cout << "magic number: ";
+    print_u32(this->magic); cout << endl;
+    cout << "minor_version: ";
+    print_u16(this->minor_version); cout << endl;
+    cout << "major_version: ";
+    print_u16(this->major_version); cout << endl << endl;
+
+    // Show modifiers 
     showModifier(this->access_flags); 
     
+    // Show class name and the super class name
+    CONSTANT_Class temp;
+
     uint8_t * p1 = this->constant_pool[this->this_class];
     int pc_temp = 0;
-    CONSTANT_Class temp = {
-        read8(p1, pc_temp),read16(p1, pc_temp)};
+    temp.tag = read8(p1, pc_temp);
+    temp.name_index = read16(p1, pc_temp);
+    cout << this->getConstantClassName(temp) << " extends ";
 
-    cout << this->getConstantClassName(temp);
-    cout << endl;
+    p1 = this->constant_pool[this->super_class];
+    pc_temp = 0;
+    temp.tag = read8(p1, pc_temp);
+    temp.name_index = read16(p1, pc_temp);
+    cout << this->getConstantClassName(temp) << endl;
+    cout << "{\n";
 
-    cout << "  magic number: ";
-    print_u32(this->magic); cout << endl;
-    cout << "  minor_version: ";
-    print_u16(this->minor_version); cout << endl;
-    cout << "  major_version: ";
-    print_u16(this->major_version); cout << endl;
     cout << "  constant pool count: " << this->constant_pool_count << endl;
 
-    cout << "this_class: ";
-    print_u16(this->this_class); cout << endl;
+    cout << "  interfaces_count: " << this->interfaces_count << endl;
 
-    cout << "super_class: ";
-    print_u16(this->super_class); cout << endl;
+    cout << "  fields_count: " << this->fields_count << endl;
 
-    cout << "interfaces_count: " << this->interfaces_count << endl;
+    cout << "  methods_count: " << this->methods_count << endl;
 
-    cout << "fields_count: " << this->fields_count << endl;
-
-    cout << "methods_count: " << this->methods_count << endl;
-
-    cout << "-----------------------\n";
+    cout << "}\n-----------------------\n";
 }
 
 // 通过 magic 是否等于 cafebabe 判断这个文件是不是Java class文件
