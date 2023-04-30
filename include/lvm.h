@@ -119,6 +119,7 @@ private:
     uint16_t fields_count;
     // Here might something add
     uint16_t methods_count;
+    int main_method_index;                  // 方法区中main方法所在下标
     std::vector<uint8_t*> methods;          // 方法区
     
     uint16_t attributes_count;
