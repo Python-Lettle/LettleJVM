@@ -1,5 +1,6 @@
 #include <lvm.h>
 #include <fstream>
+#include <stack>
 
 #include <lvm_util.h>
 using namespace std;
@@ -63,7 +64,10 @@ ClassFile::ClassFile(const char * filename)
     this->methods.resize(this->methods_count);          // 将函数区重定大小
     for(int i=0; i<this->methods_count; i++) {
         this->methods[i] = &bytecode[pc];               // 将函数起始部分放入 method_area
-        pc += 6;                                        // 跳过 3个u2大小的数据
+        pc += 2;
+        string method_name = getUTF8(this->constant_pool[read16(bytecode, pc)]);
+        if (method_name == "main") this->main_method_index = i;
+        pc += 2;                                        // 跳过 3个u2大小的数据
         int attributes_count = read16(bytecode, pc);
         for (int j=0; j<attributes_count; j++) {
             pc += 2;
@@ -86,12 +90,21 @@ void ClassFile::execute()
 {
     int pc_temp = 0;
     uint8_t * main_method_p = methods[this->main_method_index];
+    // Read method info
     method_info main_method;
     main_method.access_flags = read16(main_method_p, pc_temp);
     main_method.name_index = read16(main_method_p, pc_temp);
     main_method.descriptor_index = read16(main_method_p, pc_temp);
     main_method.attributes_count = read16(main_method_p, pc_temp);
+    execute_method(main_method);
+}
 
+void ClassFile::execute_method(method_info method)
+{
+    stack<int> runtime_stack;
+    for (int i=0; i<method.attributes_count; i++) {
+        // Read each instruction and run
+    }
 }
 
 char * ClassFile::getConstantClassName(CONSTANT_Class c)
