@@ -1,5 +1,5 @@
 CC = g++
-CFlags = -std=c++11 -Wmissing-declarations -Wc++11-extensions -g -c -I $(includePath)
+CFlags = -std=c++11 -g -c -I $(includePath)
 
 includePath = include
 
@@ -8,7 +8,8 @@ t = target
 
 VMKernel =  $(t)/main.o \
 			$(t)/util.o \
-			$(t)/ClassFile.o
+			$(t)/ClassFile.o \
+			$(t)/LVM.o
 
 all: $(VMKernel)
 	$(CC) $(CCflags) $(VMKernel) -o lvm
@@ -29,5 +30,9 @@ $(t)/util.o: $(s)/util.cpp
 	$(CC) $(CFlags) -o $@ $<
 
 $(t)/ClassFile.o: $(s)/ClassFile.cpp
+	mkdir -p target
+	$(CC) $(CFlags) -o $@ $<
+
+$(t)/LVM.o: $(s)/LVM.cpp
 	mkdir -p target
 	$(CC) $(CFlags) -o $@ $<

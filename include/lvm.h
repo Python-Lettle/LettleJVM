@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <stack>
 #include <lvm_types.h>
 
 #define STACK_SIZE 100
@@ -29,7 +30,7 @@ enum CONSTANT_TYPES
     CONSTANT_NameAndType = 0x0C
 };
 
-// 可见行修饰符列表
+// 可见性修饰符列表
 enum MODIFIER_CONST
 {
     // Class
@@ -192,6 +193,16 @@ typedef struct CONSTANT_Class
     uint16_t name_index;
 }CONSTANT_Class;
 
+class LettleVM
+{
+    public:
+    LettleVM();
+    ~LettleVM();
+
+    private:
+    std::stack<int> jvm_stack;
+    int * heap;
+};
 
 
 // -------------------------
@@ -205,9 +216,9 @@ public:
     ClassFile(const char * filename);
 
     uint8_t* load_class_file(const char * filename);
-    void execute();
-    void execute(uint8_t * bytecode, int& pc);
-    void execute_method(method_info method);
+    void execute(LettleVM &vm);
+    void execute(LettleVM &vm, uint8_t * bytecode, int& pc);
+    void execute_method(LettleVM &vm, method_info method);
 
     char * getConstantClassName(CONSTANT_Class c);
     char * getSuperClassName(CONSTANT_Class c);
@@ -239,10 +250,11 @@ private:
     uint16_t super_class;
     uint16_t interfaces_count;
     std::vector<uint8_t *> interfaces;
-    // Here might something add
+
     uint16_t fields_count;
     std::vector<uint8_t *> fields;
-    // Here might something add
+
+    // 类方法
     uint16_t methods_count;
     int main_method_index;                  // 方法区中main方法所在下标
     std::vector<uint8_t*> methods;          // 方法区

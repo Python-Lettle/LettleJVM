@@ -86,9 +86,11 @@ ClassFile::ClassFile(const char * filename)
 }
 
 // Execute method
-void ClassFile::execute() 
+void ClassFile::execute(LettleVM& vm) 
 {
     int pc_temp = 0;
+
+    // main 函数指针
     uint8_t * main_method_p = methods[this->main_method_index];
     // Read method info
     method_info main_method;
@@ -96,12 +98,11 @@ void ClassFile::execute()
     main_method.name_index = read16(main_method_p, pc_temp);
     main_method.descriptor_index = read16(main_method_p, pc_temp);
     main_method.attributes_count = read16(main_method_p, pc_temp);
-    execute_method(main_method);
+    execute_method(vm, main_method);
 }
 
-void ClassFile::execute_method(method_info method)
+void ClassFile::execute_method(LettleVM& vm, method_info method)
 {
-    stack<int> runtime_stack;
     for (int i=0; i<method.attributes_count; i++) {
         // Read each instruction and run
     }
@@ -208,7 +209,7 @@ void ClassFile::showInfo()
 
         TAB;showModifier(method_temp.access_flags);
         // Method name
-        cout << getUTF8(this->constant_pool[method_temp.descriptor_index]) << " " << getUTF8(this->constant_pool[method_temp.name_index]) << endl;
+        cout << getUTF8(this->constant_pool[method_temp.name_index]) << " " << getUTF8(this->constant_pool[method_temp.descriptor_index]) << endl;
         TAB;cout << "{\n"; tablevel++;
         
         tablevel--;
