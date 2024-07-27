@@ -1,3 +1,12 @@
+/**
+ * @file lvm.h
+ * @author Lettle (1071445082@qq.com)
+ * @version 0.1
+ * @date 2024-07-27
+ * @copyright Copyright (c) 2024
+ * 
+ * @brief Lettle Java VM header
+ */
 #ifndef JVM_H
 #define JVM_H
 
@@ -5,6 +14,9 @@
 #include <vector>
 #include <stack>
 #include <lvm_types.h>
+
+#define DEBUG 0
+#define DEBUG_LOG(...) if (DEBUG) printf(__VA_ARGS__)
 
 #define STACK_SIZE 100
 #define METHOD_AREA_SIZE 10
@@ -23,7 +35,7 @@ namespace lvm
 enum CONSTANT_TYPES
 {
     CONSTANT_UTF8      = 0x01,
-    CONSTANT_Class_info= 0x07,
+    CONSTANT_Class     = 0x07,
     CONSTANT_String    = 0x08,
     CONSTANT_Fieldref  = 0x09,
     CONSTANT_Methodref = 0x0A,
@@ -82,8 +94,8 @@ enum INSTRUCTION_ENUM
     DCONST_1,
     BIPUSH,
     SIPUSH,
-    LDC,
-    LDC_W,
+    LDC = 0x12,
+    LDC_W = 0x13,
     LDC2_W = 0x14,
 
     // 局部变量值转载到栈中指令
@@ -149,8 +161,8 @@ enum INSTRUCTION_ENUM
     ARRAYLENGTH,            // array length: 获取一维数组的长度。
     MULTIANEWARRAY = 0xc5,  // 创建dimension维度的数组。
     // 方法调用指令
-    INVOKESPECIAL = 0xb7,          // 编译时方法绑定调用方法。
     INVOKEVIRTUAL = 0xb6,          // 运行时方法绑定调用方法。
+    INVOKESPECIAL = 0xb7,          // 编译时方法绑定调用方法。
     INVOKESTATIC = 0xb8,           // 调用静态方法。
     INVOKEINTERFACE = 0xb9,        // 调用接口方法。
     // 方法返回指令 TODO
@@ -178,89 +190,136 @@ typedef struct attribute_info
     uint8_t *info;
 }attribute_info;
 
+typedef struct instruction_info
+{
+    uint8_t opcode;
+    uint8_t operand;
+    uint8_t hav_operand;
+}instruction_info;
+
 typedef struct method_info
 {
     uint16_t access_flags;
     uint16_t name_index;
     uint16_t descriptor_index;
     uint16_t attributes_count;
-    attribute_info * attributes;
+    std::vector<attribute_info> attributes;
+
+    uint16_t max_stack;
+    uint16_t max_locals;
+    uint16_t code_length;
+    std::vector<instruction_info> instructions;      // 指令区
 }method_info;
 
-typedef struct CONSTANT_Class
+typedef struct Constant
 {
     uint8_t tag;
-    uint16_t name_index;
-}CONSTANT_Class;
+    uint16_t index;                 // 一个通用的index, 不同类型常量的index意义不同
+    uint16_t name_and_type_index;   // 有的常量没有这个字段
+    uint8_t* utf8_const;            // 字符串常量
+}Constant;
 
-class LettleVM
+
+// -------------------------
+// DataArea class
+// -------------------------
+class ClassFile;
+class DataArea
 {
     public:
-    LettleVM();
-    ~LettleVM();
+    DataArea();
+    DataArea(ClassFile * classfile);
+    ~DataArea();
 
-    private:
-    std::stack<int> jvm_stack;
+    std::vector<method_info*> method_area;
     int * heap;
+    std::stack<uint32_t> jvm_stack;
+    std::stack<uint32_t> native_stack;
+
+    std::vector<uint32_t> static_vars;
+
+    int pc;
+
+    std::vector<Constant> constant_pool;
 };
 
 
 // -------------------------
 // ClassFile class
 // -------------------------
-
+class ExecEngine;
 class ClassFile
 {
 public:
+    //--------------------
+    // Functions
+    //--------------------
     ClassFile();
     ClassFile(const char * filename);
 
     uint8_t* load_class_file(const char * filename);
-    void execute(LettleVM &vm);
-    void execute(LettleVM &vm, uint8_t * bytecode, int& pc);
-    void execute_method(LettleVM &vm, method_info method);
+    void execute(DataArea &vmdata, ExecEngine engine);
+    uint32_t execute_instruction(DataArea& vmdata, instruction_info instruction);
+    void execute_method(DataArea &vmdata, method_info* method);
 
-    char * getConstantClassName(CONSTANT_Class c);
-    char * getSuperClassName(CONSTANT_Class c);
+    char * getConstantClassName(Constant* c);
+    char * getSuperClassName(Constant* c);
 
     bool isJavaClass();
     int getJavaVersion();
     void showInfo();
-private:
-    int pc = 0;
-    uint8_t * bytecode;
 
-    // Define the JVM's stack
-    // std::vector<int> jvm_stack = std::vector<int>(STACK_SIZE);
-    // int sp = -1; // Stack pointer
-
-    // Define the runtime constant pool
-    // std::vector<int> runtime_const_pool = std::vector<int>(RUNTIME_CONST_POOL_SIZE);
-    // int num_runtime_constants = 0;
-
+    //--------------------
+    // Vars
+    //--------------------
+    // 一般信息
     uint32_t magic;                             // cafebabe
     uint16_t minor_version;                     // 副版本号
     uint16_t major_version;                     // 主版本号
 
     uint16_t constant_pool_count;               // 常量池元素个数
-    std::vector<uint8_t*> constant_pool;        // 常量池
+    std::vector<Constant> constant_pool;       // 常量池
 
-    uint16_t access_flags;
-    uint16_t this_class;
-    uint16_t super_class;
-    uint16_t interfaces_count;
-    std::vector<uint8_t *> interfaces;
+    uint16_t access_flags;                      // 访问标志
+    uint16_t this_class;                        // 本类索引
+    uint16_t super_class;                       // 父类索引
 
-    uint16_t fields_count;
-    std::vector<uint8_t *> fields;
+    uint16_t interfaces_count;                  // 接口计数
+    std::vector<uint8_t *> interfaces;          // 接口
 
-    // 类方法
-    uint16_t methods_count;
-    int main_method_index;                  // 方法区中main方法所在下标
-    std::vector<uint8_t*> methods;          // 方法区
+    uint16_t fields_count;                      // 字段计数
+
+    uint16_t methods_count;                     // 方法计数
+    std::vector<method_info*> methods;          // 方法区
+    std::vector<method_info*> static_methods;   // 静态方法区
+    int main_method_index;                      // 方法区中main方法所在下标
     
-    uint16_t attributes_count;
-    std::vector<uint8_t*> attributes;
+    uint16_t attributes_count;                  // 属性计数
+    std::vector<uint8_t*> attributes;           // 属性
+
+    private:
+    int pc = 0;
+    uint8_t * bytecode;
+
+};
+
+class ExecEngine
+{
+public:
+    ExecEngine();
+    ExecEngine(Constant* now_class);
+    ~ExecEngine();
+
+    uint32_t execute_instruction(DataArea &vmdata, instruction_info instruction);
+    void execute_method(DataArea &vmdata, method_info* method);
+
+    std::vector<uint32_t> operand_stack;
+    int operand_stack_top = 0;
+
+    std::vector<uint32_t> local_vars;
+
+private:
+    Constant * now_class;
 };
 
 }

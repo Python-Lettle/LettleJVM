@@ -1,3 +1,12 @@
+/**
+ * @file ClassFile.cpp
+ * @author Lettle (1071445082@qq.com)
+ * @version 0.1
+ * @date 2024-07-27
+ * @copyright Copyright (c) 2024
+ * 
+ * @brief Lettle Java VM ClassFile class implementation
+ */
 #include <lvm.h>
 #include <fstream>
 #include <stack>
@@ -28,29 +37,35 @@ ClassFile::ClassFile(const char * filename)
     this->constant_pool.resize(this->constant_pool_count);
     // 常量获取
     for (int i=1; i<=constant_pool_count-1; i++) {
-        int pc_temp = 0, utf8_len;
-        this->constant_pool[i] = &bytecode[pc];
-        uint8_t tag = read8(this->constant_pool[i], pc_temp);
-        switch (tag)
+        Constant constant;
+        constant.tag = read8(bytecode, pc);
+        switch (constant.tag)
         {
         case CONSTANT_UTF8:
-            utf8_len = read16(this->constant_pool[i], pc_temp);
-            pc += 3+utf8_len;
+            constant.index = read16(bytecode, pc);  // 字符串长度
+            constant.utf8_const = new uint8_t[constant.index+1];
+            // 字符串内容
+            for (int j=0; j<constant.index; j++) {
+                constant.utf8_const[j] = read8(bytecode, pc);
+            }
+            constant.utf8_const[constant.index] = '\0';
             break;
-        case CONSTANT_Class_info:
+        case CONSTANT_Class:
         case CONSTANT_String:
-            pc += 3; 
+            constant.index = read16(bytecode, pc);  // name_index / string_index
             break;
         case CONSTANT_Fieldref:
         case CONSTANT_Methodref:
         case CONSTANT_NameAndType:
-            pc += 5; 
+            constant.index = read16(bytecode, pc);  // name_index / class_index
+            constant.name_and_type_index = read16(bytecode, pc);  // descriptor_index
             break;
         default:
             cout << "未知的常量tag: ";
-            print_u8(tag); cout << endl;
+            print_u8(constant.tag); cout << endl;
             exit(1);
         }
+        this->constant_pool[i] = constant;
     }
 
     this->access_flags = read16(bytecode, pc);
@@ -63,54 +78,68 @@ ClassFile::ClassFile(const char * filename)
     this->methods_count = read16(bytecode, pc);
     this->methods.resize(this->methods_count);          // 将函数区重定大小
     for(int i=0; i<this->methods_count; i++) {
-        this->methods[i] = &bytecode[pc];               // 将函数起始部分放入 method_area
-        pc += 2;
-        string method_name = getUTF8(this->constant_pool[read16(bytecode, pc)]);
+        this->methods[i] = new method_info();
+        method_info* method = this->methods[i];
+
+        method->access_flags = read16(bytecode, pc);
+        method->name_index = read16(bytecode, pc);
+        method->descriptor_index = read16(bytecode, pc);
+        method->attributes_count = read16(bytecode, pc);
+
+        // Mark main method
+        string method_name = getUTF8(this->constant_pool[method->name_index].utf8_const);
         if (method_name == "main") this->main_method_index = i;
-        pc += 2;                                        // 跳过 3个u2大小的数据
-        int attributes_count = read16(bytecode, pc);
+        
+        // Read method attributes
+        int attributes_count = method->attributes_count;
         for (int j=0; j<attributes_count; j++) {
-            pc += 2;
+            pc += 2;        // attribute_name_index (skip)
             int attribute_length = read32(bytecode, pc);
-            pc += attribute_length;
+            
+            method->max_stack = read16(bytecode, pc);
+            method->max_locals = read16(bytecode, pc);
+            method->code_length = read32(bytecode, pc);
+            for (int k=0; k<method->code_length; k++) {
+                instruction_info instruction;
+                instruction.opcode = read8(bytecode, pc);
+                instruction.hav_operand = get_instruction_value_size(instruction.opcode);
+                switch (instruction.hav_operand)
+                {
+                case 0: break;
+                case 1: instruction.operand = read8(bytecode, pc); break;
+                case 2: instruction.operand = read16(bytecode, pc); break;
+                }
+                k += instruction.hav_operand;
+                method->instructions.push_back(instruction);
+            }
+
+            // LineNumberTable (skip)
+            uint32_t attributes_count = read32(bytecode, pc);
+            uint16_t unknown = read16(bytecode, pc);
+            uint16_t attributes_length = read32(bytecode, pc);
+            pc += attributes_length;
         }
 
     }
 
+    // Final attributes read
     this->attributes_count = read16(bytecode, pc);
     this->attributes.resize(this->attributes_count);
     for(int i=0; i<this->attributes_count; i++) {
         this->attributes[i] = &bytecode[pc];
     }
-    
 }
 
 // Execute method
-void ClassFile::execute(LettleVM& vm) 
+void ClassFile::execute(DataArea& vmdata, ExecEngine engine) 
 {
-    int pc_temp = 0;
-
-    // main 函数指针
-    uint8_t * main_method_p = methods[this->main_method_index];
-    // Read method info
-    method_info main_method;
-    main_method.access_flags = read16(main_method_p, pc_temp);
-    main_method.name_index = read16(main_method_p, pc_temp);
-    main_method.descriptor_index = read16(main_method_p, pc_temp);
-    main_method.attributes_count = read16(main_method_p, pc_temp);
-    execute_method(vm, main_method);
+    method_info* main_method = methods[this->main_method_index];
+    engine.execute_method(vmdata, main_method);
 }
 
-void ClassFile::execute_method(LettleVM& vm, method_info method)
+char * ClassFile::getConstantClassName(Constant* c)
 {
-    for (int i=0; i<method.attributes_count; i++) {
-        // Read each instruction and run
-    }
-}
-
-char * ClassFile::getConstantClassName(CONSTANT_Class c)
-{
-    return getUTF8(this->constant_pool[c.name_index]);
+    return getUTF8(c->utf8_const);
 }
 
 // Load a class file into memory
@@ -149,7 +178,7 @@ void ClassFile::showInfo()
     int pc_temp = 0;
     attribute_info attr_info;
     load_attribute_info(this->attributes[0], attr_info);
-    cout << getUTF8(this->constant_pool[attr_info.info[1]]);
+    cout << getUTF8(this->constant_pool[attr_info.info[1]].utf8_const) <<endl;
 
     cout << "magic number: ";
     print_u32(this->magic); cout << endl;
@@ -163,19 +192,12 @@ void ClassFile::showInfo()
     if (havFlag(this->access_flags, ACC_INTERFACE)) cout << "interface ";
     else cout << "class ";
     // Show class name and the super class name
-    CONSTANT_Class class_temp;
-
-    uint8_t * p1 = this->constant_pool[this->this_class];
-    pc_temp = 0;
-    class_temp.tag = read8(p1, pc_temp);
-    class_temp.name_index = read16(p1, pc_temp);
-    cout << this->getConstantClassName(class_temp) << " extends ";
-
-    p1 = this->constant_pool[this->super_class];
-    pc_temp = 0;
-    class_temp.tag = read8(p1, pc_temp);
-    class_temp.name_index = read16(p1, pc_temp);
-    cout << this->getConstantClassName(class_temp) << endl;
+    Constant* class_temp = &this->constant_pool[this->this_class];
+    class_temp = &this->constant_pool[class_temp->index];
+    cout << getUTF8(class_temp->utf8_const) << " extends ";
+    class_temp = &this->constant_pool[this->super_class];
+    class_temp = &this->constant_pool[class_temp->index];
+    cout << getUTF8(class_temp->utf8_const) << endl;
     cout << "{\n"; tablevel++;
 
     showTab(tablevel);cout << "constant pool count: " << this->constant_pool_count << endl;
@@ -185,33 +207,25 @@ void ClassFile::showInfo()
 
     // ------------------------
     // Print method info
-    // ------------------------
-    method_info method_temp;
-    for(int i=0; i<this->methods_count; i++) {
-        /**
-         * Read info
-        */
-        pc_temp = 0;
-        method_temp.access_flags = read16(this->methods[i], pc_temp);
-        method_temp.name_index = read16(this->methods[i], pc_temp);
-        method_temp.descriptor_index = read16(this->methods[i], pc_temp);
-        method_temp.attributes_count = read16(this->methods[i], pc_temp);
-        method_temp.attributes = new attribute_info[method_temp.attributes_count];
-        for(int i=0; i<method_temp.attributes_count; i++) {
-            method_temp.attributes[i].attribute_name_index = read16(this->methods[i], pc_temp);
-            method_temp.attributes[i].attribute_length = read32(this->methods[i], pc_temp);
-            method_temp.attributes[i].info = this->methods[i] + pc_temp;
-        }
-        
+    for(method_info* method : this->methods) {
         /**
          * Show begin
         */
 
-        TAB;showModifier(method_temp.access_flags);
+        TAB;showModifier(method->access_flags);
         // Method name
-        cout << getUTF8(this->constant_pool[method_temp.name_index]) << " " << getUTF8(this->constant_pool[method_temp.descriptor_index]) << endl;
+        cout << getUTF8(this->constant_pool[method->name_index].utf8_const) << " " << getUTF8(this->constant_pool[method->descriptor_index].utf8_const) << endl;
         TAB;cout << "{\n"; tablevel++;
         
+        // Method instructions
+        for(instruction_info ins : method->instructions) {
+            TAB;cout << get_instruction_name(ins.opcode);
+            if (ins.hav_operand) {
+                cout << " #" << (int)ins.operand;
+            }
+            cout << endl;
+        }
+
         tablevel--;
         TAB;cout << "}\n"; 
     }

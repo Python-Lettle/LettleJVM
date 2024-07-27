@@ -6,10 +6,11 @@ includePath = include
 s = src
 t = target
 
-VMKernel =  $(t)/main.o \
-			$(t)/util.o \
+VMKernel =  $(t)/util.o \
 			$(t)/ClassFile.o \
-			$(t)/LVM.o
+			$(t)/DataArea.o \
+			$(t)/ExecEngine.o \
+			$(t)/main.o 
 
 all: $(VMKernel)
 	$(CC) $(CCflags) $(VMKernel) -o lvm
@@ -33,6 +34,10 @@ $(t)/ClassFile.o: $(s)/ClassFile.cpp
 	mkdir -p target
 	$(CC) $(CFlags) -o $@ $<
 
-$(t)/LVM.o: $(s)/LVM.cpp
+$(t)/DataArea.o: $(s)/DataArea.cpp
+	mkdir -p target
+	$(CC) $(CFlags) -o $@ $<
+
+$(t)/ExecEngine.o: $(s)/ExecEngine.cpp
 	mkdir -p target
 	$(CC) $(CFlags) -o $@ $<

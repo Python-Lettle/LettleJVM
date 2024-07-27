@@ -1,3 +1,12 @@
+/**
+ * @file lvm_types.h
+ * @author Lettle (1071445082@qq.com)
+ * @version 0.1
+ * @date 2024-07-27
+ * @copyright Copyright (c) 2024
+ * 
+ * @brief Lettle Java VM types
+ */
 #ifndef LVM_TYPES_H
 #define LVM_TYPES_H
 

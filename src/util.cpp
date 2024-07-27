@@ -1,3 +1,12 @@
+/**
+ * @file util.cpp
+ * @author Lettle (1071445082@qq.com)
+ * @version 0.1
+ * @date 2024-07-27
+ * @copyright Copyright (c) 2024
+ * 
+ * @brief Lettle Java VM util function implementation
+ */
 #include <lvm_util.h>
 #include <lvm.h>
 #include <lvm_types.h>
@@ -19,14 +28,7 @@ void load_attribute_info(uint8_t * data, attribute_info &info)
 // 传入常量池中 UTF8 常量的起始地址即可
 char * getUTF8(uint8_t * utf8)
 {
-    int pc_temp = 1;
-    uint16_t length = read16(utf8, pc_temp);
-    char* utf8_data = new char[length + 1];
-    for(int i=0; i<length; i++) {
-        utf8_data[i] = read8(utf8, pc_temp);
-    }
-    utf8_data[length] = '\0';
-    return utf8_data;
+    return (char *)utf8;
 }
 
 // 通过 access flag 输出当前的可见性修饰符
@@ -96,4 +98,88 @@ void print_u8(lvm::uint8_t hexnum)
     printf("%s", show);
 }
 
+string get_instruction_name(uint8_t opcode)
+{
+    switch(opcode)
+    {
+        case NOP: return "NOP";
+        case POP: return "POP";
+        case POP2: return "POP2";
+        case DUP: return "DUP";
+        case DUP_X1: return "DUP_X1";
+        case DUP_X2: return "DUP_X2";
+        case DUP2: return "DUP2";
+        case DUP2_X1: return "DUP2_X1";
+        case DUP2_X2: return "DUP2_X2";
+        case SWAP: return "SWAP";
+        
+        case ACONST_NULL: return "ACONST_NULL";
+        case ICONST_M1: return "ICONST_M1";
+        case ICONST_0: return "ICONST_0";
+        case ICONST_1: return "ICONST_1";
+        case ICONST_2: return "ICONST_2";
+        case ICONST_3: return "ICONST_3";
+        case ICONST_4: return "ICONST_4";
+        case ICONST_5: return "ICONST_5";
+        case LCONST_0: return "LCONST_0";
+        case LCONST_1: return "LCONST_1";
+        case FCONST_0: return "FCONST_0";
+        case FCONST_1: return "FCONST_1";
 
+        case BIPUSH: return "BIPUSH";
+        case SIPUSH: return "SIPUSH";
+        case LDC: return "LDC";
+        case LDC_W: return "LDC_W";
+        case LDC2_W: return "LDC2_W";
+
+        case ALOAD: return "ALOAD";
+        case ALOAD_0: return "ALOAD_0";
+        case ALOAD_1: return "ALOAD_1";
+        case ALOAD_2: return "ALOAD_2";
+        case ALOAD_3: return "ALOAD_3";
+        case ILOAD: return "ILOAD";
+        case LLOAD: return "LLOAD";
+        case FLOAD: return "FLOAD";
+        case DLOAD: return "DLOAD";
+        case ILOAD_0: return "ILOAD_0";
+        case ILOAD_1: return "ILOAD_1";
+        case ILOAD_2: return "ILOAD_2";
+        case ILOAD_3: return "ILOAD_3";
+        case LLOAD_0: return "LLOAD_0";
+        case LLOAD_1: return "LLOAD_1";
+        case LLOAD_2: return "LLOAD_2";
+        case LLOAD_3: return "LLOAD_3";
+
+        case GETSTATIC: return "GETSTATIC";
+
+        case INVOKEVIRTUAL: return "INVOKEVIRTUAL";
+        case INVOKESPECIAL: return "INVOKESPECIAL";
+        case INVOKESTATIC: return "INVOKESTATIC";
+        case INVOKEINTERFACE: return "INVOKEINTERFACE";
+
+        case RETURN: return "RETURN";
+
+        case MONITORENTER: return "MONITORENTER";
+        case MONITOREXIT: return "MONITOREXIT";
+
+        default: return "#" + to_string(opcode);
+    }
+}
+
+int get_instruction_value_size(uint8_t opcode)
+{
+    switch (opcode)
+    {
+        case ALOAD_0:
+        case RETURN:
+            return 0;
+        case LDC:
+            return 1;
+        case GETSTATIC:
+        case INVOKEVIRTUAL:
+        case INVOKESPECIAL:
+        case INVOKESTATIC:
+            return 2;
+    }
+    return 0;
+}

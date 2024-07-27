@@ -1,7 +1,17 @@
+/**
+ * @file lvm_util.h
+ * @author Lettle (1071445082@qq.com)
+ * @version 0.1
+ * @date 2024-07-27
+ * @copyright Copyright (c) 2024
+ * 
+ * @brief Lettle Java VM util function header
+ */
 #ifndef UTIL_H
 #define UTIL_H
 
 #include <iostream>
+#include <string>
 #include <lvm.h>
 #include <lvm_types.h>
 
@@ -19,6 +29,9 @@ void load_attribute_info(uint8_t * data, lvm::attribute_info &info);
 void print_u32(lvm::uint32_t hexnum);
 void print_u16(lvm::uint16_t hexnum);
 void print_u8(lvm::uint8_t hexnum);
+
+std::string get_instruction_name(uint8_t opcode);
+int get_instruction_value_size(uint8_t opcode);
 
 // read hex numbers from file
 // lvm::uint32_t read32(std::ifstream &file);
