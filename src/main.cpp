@@ -19,7 +19,7 @@ int main ()
 {
     // Load the class file
     ClassFile main_class("Main.class");
-
+    
     if(DEBUG)
     if (main_class.isJavaClass()) {
         main_class.showInfo();

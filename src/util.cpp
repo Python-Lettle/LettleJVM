@@ -98,6 +98,32 @@ void print_u8(lvm::uint8_t hexnum)
     printf("%s", show);
 }
 
+void print_stack(std::stack<stack_frame>& s)
+{
+    if (s.empty()) {
+        std::cout << "Stack is empty." << std::endl;
+        return;
+    }
+
+    std::stack<stack_frame> temp;
+    while (!s.empty()) {
+        temp.push(s.top());
+        s.pop();
+    }
+  
+    // 输出元素
+    cout << "-----Stack-----" << endl;
+    while (!temp.empty()) {
+        std::cout << temp.top().value << " ";
+        stack_frame topElement = temp.top();
+        temp.pop();
+        s.push(topElement); // 重新将元素压回原始栈
+    }
+    cout << endl << "---------------" << endl;
+
+    std::cout << std::endl;
+}
+
 string get_instruction_name(uint8_t opcode)
 {
     switch(opcode)
@@ -149,6 +175,44 @@ string get_instruction_name(uint8_t opcode)
         case LLOAD_1: return "LLOAD_1";
         case LLOAD_2: return "LLOAD_2";
         case LLOAD_3: return "LLOAD_3";
+        case FLOAD_0: return "FLOAD_0";
+        case FLOAD_1: return "FLOAD_1";
+        case FLOAD_2: return "FLOAD_2";
+        case FLOAD_3: return "FLOAD_3";
+        case DLOAD_0: return "DLOAD_0";
+        case DLOAD_1: return "DLOAD_1";
+        case DLOAD_2: return "DLOAD_2";
+        case DLOAD_3: return "DLOAD_3";
+        case IALOAD: return "IALOAD";
+        case LALOAD: return "LALOAD";
+        case FALOAD: return "FALOAD";
+        case DALOAD: return "DALOAD";
+        case AALOAD: return "AALOAD";
+        case CALOAD: return "CALOAD";
+        case SALOAD: return "SALOAD";
+
+        case ISTORE_0: return "ISTORE_0";
+        case ISTORE_1: return "ISTORE_1";
+        case ISTORE_2: return "ISTORE_2";
+        case ISTORE_3: return "ISTORE_3";
+
+        case IADD: return "IADD";
+        case ISUB: return "ISUB";
+        case IMUL: return "IMUL";
+        case IDIV: return "IDIV";
+        case IREM: return "IREM";
+
+        case IF_ICMPEQ: return "IF_ICMPEQ";
+        case IF_ICMPNE: return "IF_ICMPNE";
+        case IF_ICMPLT: return "IF_ICMPLT";
+        case IF_ICMPGE: return "IF_ICMPGE";
+        case IF_ICMPGT: return "IF_ICMPGT";
+        case IF_ICMPLE: return "IF_ICMPLE";
+        case IF_ACMPEQ: return "IF_ACMPEQ";
+        case IF_ACMPNE: return "IF_ACMPNE";
+
+        case GOTO: return "GOTO";
+        case GOTO_W: return "GOTO_W";
 
         case GETSTATIC: return "GETSTATIC";
 
@@ -170,11 +234,19 @@ int get_instruction_value_size(uint8_t opcode)
 {
     switch (opcode)
     {
-        case ALOAD_0:
-        case RETURN:
-            return 0;
+        case BIPUSH:
+        case SIPUSH:
         case LDC:
             return 1;
+        case IF_ICMPEQ:
+        case IF_ICMPNE:
+        case IF_ICMPLT:
+        case IF_ICMPGE:
+        case IF_ICMPGT:
+        case IF_ICMPLE:
+        case IF_ACMPEQ:
+        case IF_ACMPNE:
+        case GOTO:
         case GETSTATIC:
         case INVOKEVIRTUAL:
         case INVOKESPECIAL:

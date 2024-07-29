@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <string>
+#include <stack>
 #include <lvm.h>
 #include <lvm_types.h>
 
@@ -29,6 +30,8 @@ void load_attribute_info(uint8_t * data, lvm::attribute_info &info);
 void print_u32(lvm::uint32_t hexnum);
 void print_u16(lvm::uint16_t hexnum);
 void print_u8(lvm::uint8_t hexnum);
+
+void print_stack(std::stack<lvm::stack_frame>& s);
 
 std::string get_instruction_name(uint8_t opcode);
 int get_instruction_value_size(uint8_t opcode);

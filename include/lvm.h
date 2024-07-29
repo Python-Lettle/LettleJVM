@@ -13,9 +13,11 @@
 #include <iostream>
 #include <vector>
 #include <stack>
+#include <map>
+#include <utility>
 #include <lvm_types.h>
 
-#define DEBUG 0
+#define DEBUG 1
 #define DEBUG_LOG(...) if (DEBUG) printf(__VA_ARGS__)
 
 #define STACK_SIZE 100
@@ -40,6 +42,19 @@ enum CONSTANT_TYPES
     CONSTANT_Fieldref  = 0x09,
     CONSTANT_Methodref = 0x0A,
     CONSTANT_NameAndType = 0x0C
+};
+
+// 栈帧类型
+enum FRAME_TYPES
+{
+    FRAME_BYTE,
+    FRAME_LONG,
+    FRAME_INT,
+    FRAME_FLOAT,
+    FRAME_DOUBLE,
+    FRAME_REFERENCE,
+    FRAME_CONSTANT,
+    FRAME_STATIC
 };
 
 // 可见性修饰符列表
@@ -132,10 +147,40 @@ enum INSTRUCTION_ENUM
     CALOAD,                 // 从char类型数组中装载指定项的值（先转换为int类型值，后压栈）。
     SALOAD = 0x35,          // 从short类型数组中装载指定项的值（先转换为int类型值，后压栈）。
     
-    // 将栈顶值保存到局部变量中指令 TODO
+    // 将栈顶值保存到局部变量中指令
+    ISTORE_0 = 0x3b,        // 将栈顶int类型值保存到局部变量中。
+    ISTORE_1,
+    ISTORE_2,
+    ISTORE_3,
+
+    // 运算
+    IADD = 0x60,            // 两个int类型相加
+    ISUB = 0x64,            // 两个int类型相减
+    IMUL = 0x68,            // 两个int类型相乘
+    IDIV = 0x6c,            // 两个int类型相除
+    IREM = 0x70,            // 两个int类型求余
+
+    IINC = 0x84,            // 将局部变量表中的变量增加指定的值
 
     // wide 指令
     WIDE = 0xc4,            // 使用附加字节扩展局部变量索引（iinc指令特殊）。
+
+    // 逻辑判断指令
+    IFEQ = 0x99,
+    IFNE,
+    IFLT,
+    IFGE,
+    IFGT,
+    IFLE,
+
+    IF_ICMPEQ = 0x9f,       // 如果栈顶两个int类型值相等，则跳转到指定偏移处
+    IF_ICMPNE,              // 如果栈顶两个int类型值不相等，则跳转到指定偏移处
+    IF_ICMPLT,              // 如果栈顶两个int类型值小于，则跳转到指定偏移处
+    IF_ICMPGE,              // 如果栈顶两个int类型值大于等于，则跳转到指定偏移处
+    IF_ICMPGT,              // 如果栈顶两个int类型值大于，则跳转到指定偏移处
+    IF_ICMPLE,              // 如果栈顶两个int类型值小于等于，则跳转到指定偏移处
+    IF_ACMPEQ,              // 如果栈顶两个引用类型值相等，则跳转到指定偏移处
+    IF_ACMPNE,              // 如果栈顶两个引用类型值不相等，则跳转到指定偏移处
 
     // 类型转换指令 TODO
     // 整数运算 TODO
@@ -175,6 +220,11 @@ enum INSTRUCTION_ENUM
 // -------------------------
 // Data Structs
 // -------------------------
+typedef struct stack_frame
+{
+    uint8_t type;
+    int64_t value;
+}stack_frame;
 
 typedef struct cp_info
 {
@@ -194,6 +244,7 @@ typedef struct instruction_info
 {
     uint8_t opcode;
     uint8_t operand;
+    uint8_t operand2;
     uint8_t hav_operand;
 }instruction_info;
 
@@ -208,7 +259,8 @@ typedef struct method_info
     uint16_t max_stack;
     uint16_t max_locals;
     uint16_t code_length;
-    std::vector<instruction_info> instructions;      // 指令区
+    int max_line_number;
+    std::map<uint32_t, instruction_info, std::greater<std::uint32_t>> instructions;      // 指令区 (升序)
 }method_info;
 
 typedef struct Constant
@@ -234,7 +286,7 @@ class DataArea
     std::vector<method_info*> method_area;
     int * heap;
     std::stack<uint32_t> jvm_stack;
-    std::stack<uint32_t> native_stack;
+    std::stack<stack_frame> native_stack;
 
     std::vector<uint32_t> static_vars;
 
@@ -310,13 +362,13 @@ public:
     ExecEngine(Constant* now_class);
     ~ExecEngine();
 
-    uint32_t execute_instruction(DataArea &vmdata, instruction_info instruction);
+    int execute_instruction(DataArea &vmdata, instruction_info instruction);
     void execute_method(DataArea &vmdata, method_info* method);
 
-    std::vector<uint32_t> operand_stack;
+    std::stack<stack_frame> operand_stack;
     int operand_stack_top = 0;
 
-    std::vector<uint32_t> local_vars;
+    std::vector<stack_frame> local_vars;
 
 private:
     Constant * now_class;

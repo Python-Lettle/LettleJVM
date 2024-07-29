@@ -85,9 +85,8 @@ ClassFile::ClassFile(const char * filename)
         method->name_index = read16(bytecode, pc);
         method->descriptor_index = read16(bytecode, pc);
         method->attributes_count = read16(bytecode, pc);
-
         // Mark main method
-        string method_name = getUTF8(this->constant_pool[method->name_index].utf8_const);
+        string method_name = string(getUTF8(this->constant_pool[method->name_index].utf8_const));
         if (method_name == "main") this->main_method_index = i;
         
         // Read method attributes
@@ -95,12 +94,17 @@ ClassFile::ClassFile(const char * filename)
         for (int j=0; j<attributes_count; j++) {
             pc += 2;        // attribute_name_index (skip)
             int attribute_length = read32(bytecode, pc);
+            int delta = pc;
             
             method->max_stack = read16(bytecode, pc);
             method->max_locals = read16(bytecode, pc);
             method->code_length = read32(bytecode, pc);
+            // 装入指令
+            // method->instructions.resize(method->code_length);  // use the code when instructions is vector type.
+            int max_line_number = 0;
             for (int k=0; k<method->code_length; k++) {
                 instruction_info instruction;
+                int code_number = k;
                 instruction.opcode = read8(bytecode, pc);
                 instruction.hav_operand = get_instruction_value_size(instruction.opcode);
                 switch (instruction.hav_operand)
@@ -108,16 +112,43 @@ ClassFile::ClassFile(const char * filename)
                 case 0: break;
                 case 1: instruction.operand = read8(bytecode, pc); break;
                 case 2: instruction.operand = read16(bytecode, pc); break;
+                case 11:
+                    instruction.operand = read8(bytecode, pc);
+                    instruction.operand2 = read8(bytecode, pc);
+                    break;
                 }
                 k += instruction.hav_operand;
-                method->instructions.push_back(instruction);
+                method->instructions.insert(make_pair(code_number, instruction));
+                max_line_number = max(max_line_number, code_number);
             }
+            method->max_line_number = max_line_number;
 
-            // LineNumberTable (skip)
-            uint32_t attributes_count = read32(bytecode, pc);
-            uint16_t unknown = read16(bytecode, pc);
-            uint16_t attributes_length = read32(bytecode, pc);
-            pc += attributes_length;
+            attribute_length -= pc - delta;
+            // delta = pc;
+            pc += attribute_length;
+            // cout << "attribute_length: " << attribute_length << endl;
+            // if (attribute_length > 0) {
+            //     // LineNumberTable (skip)
+            //     DEBUG_LOG("LineNumberTable\n");
+            //     uint32_t attributes_count = read32(bytecode, pc);
+            //     uint16_t unknown = read16(bytecode, pc);
+            //     uint16_t attributes_length = read32(bytecode, pc);
+            //     pc += attributes_length;
+            // } else {
+            //     continue;
+            // }
+            // attribute_length -= pc - delta;
+            // delta = pc;
+            // cout << "attribute_length: " << attribute_length << endl;
+            // if (attribute_length > 0) {
+            //     // StackMapTable (skip)
+            //     DEBUG_LOG("StackMapTable\n");
+            //     uint16_t attribute_name_index = read16(bytecode, pc);   // <StackMapTable>
+            //     uint32_t attributes_length = read32(bytecode, pc);
+            //     pc += attribute_length;
+            // } else {
+            //     continue;
+            // }
         }
 
     }
@@ -218,10 +249,10 @@ void ClassFile::showInfo()
         TAB;cout << "{\n"; tablevel++;
         
         // Method instructions
-        for(instruction_info ins : method->instructions) {
-            TAB;cout << get_instruction_name(ins.opcode);
-            if (ins.hav_operand) {
-                cout << " #" << (int)ins.operand;
+        for(pair<uint32_t, instruction_info> ins : method->instructions) {
+            TAB;cout << ins.first << " " << get_instruction_name(ins.second.opcode);
+            if (ins.second.hav_operand) {
+                cout << " #" << (int)ins.second.operand;
             }
             cout << endl;
         }
