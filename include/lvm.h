@@ -16,6 +16,7 @@
 #include <map>
 #include <utility>
 #include <lvm_types.h>
+#include <stdint.h>
 
 #define DEBUG 1
 #define DEBUG_LOG(...) if (DEBUG) printf(__VA_ARGS__)
@@ -260,7 +261,7 @@ typedef struct method_info
     uint16_t max_locals;
     uint16_t code_length;
     int max_line_number;
-    std::map<uint32_t, instruction_info, std::greater<std::uint32_t>> instructions;      // 指令区 (升序)
+    std::map<uint32_t, instruction_info, std::greater<uint32_t>> instructions;      // 指令区 (升序)
 }method_info;
 
 typedef struct Constant

@@ -1,6 +1,8 @@
 CC = g++
 CFlags = -std=c++11 -g -c -I $(includePath)
 
+BINNAME = vcm
+
 includePath = include
 
 s = src
@@ -13,14 +15,14 @@ VMKernel =  $(t)/util.o \
 			$(t)/main.o 
 
 all: $(VMKernel)
-	$(CC) $(CCflags) $(VMKernel) -o lvm
+	$(CC) $(CCflags) $(VMKernel) -o ./bin/$(BINNAME)
 
 run: all
-	./lvm
+	./bin/$(BINNAME)
 
 clean:
 	rm -rf target
-	rm lvm
+	rm ./bin/$(BINNAME)
 
 $(t)/main.o: $(s)/main.cpp
 	mkdir -p target
